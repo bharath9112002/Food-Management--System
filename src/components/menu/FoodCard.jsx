@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { formatINR } from '../../data/dashboardData'
+import AddToCartButton from '../cart/AddToCartButton'
 import { FALLBACK_IMAGE, handleImageError } from './image'
 
 export function VegMark({ isVeg, withLabel = false }) {
@@ -53,6 +54,8 @@ export default function FoodCard({ item, onEdit, onDelete, onToggle, linkState }
             <AvailabilityBadge available={item.available} />
           </label>
         </div>
+
+        <AddToCartButton item={item} size="sm" />
 
         <div className="food-actions">
           <button type="button" className="btn-secondary" onClick={() => onEdit(item)}>

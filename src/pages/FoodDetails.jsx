@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import AddToCartButton from '../components/cart/AddToCartButton'
 import { AvailabilityBadge, VegMark } from '../components/menu/FoodCard'
 import { FALLBACK_IMAGE, handleImageError } from '../components/menu/image'
 import { useMenuEditor } from '../components/menu/useMenuEditor'
@@ -75,7 +76,10 @@ export default function FoodDetails() {
 
           <h1>{item.name}</h1>
           <p className="food-detail-desc">{item.description}</p>
-          <p className="food-detail-price">{formatINR(item.price)}</p>
+          <div className="food-detail-buy">
+            <p className="food-detail-price">{formatINR(item.price)}</p>
+            <AddToCartButton item={item} />
+          </div>
 
           {(item.cuisine || item.prepTime || item.calories) && (
             <dl className="food-facts">

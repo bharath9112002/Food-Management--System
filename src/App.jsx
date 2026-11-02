@@ -2,8 +2,10 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import DashboardLayout from './components/DashboardLayout'
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
+import { CartProvider } from './context/CartContext'
 import { MenuProvider } from './context/MenuContext'
 import ForgotPassword from './pages/ForgotPassword'
+import Cart from './pages/Cart'
 import Dashboard from './pages/Dashboard'
 import FoodDetails from './pages/FoodDetails'
 import Login from './pages/Login'
@@ -15,6 +17,7 @@ import './App.css'
 import './Dashboard.css'
 import './Restaurants.css'
 import './Menu.css'
+import './Cart.css'
 
 function App() {
   return (
@@ -31,7 +34,9 @@ function App() {
             <Route
               element={
                 <MenuProvider>
-                  <DashboardLayout />
+                  <CartProvider>
+                    <DashboardLayout />
+                  </CartProvider>
                 </MenuProvider>
               }
             >
@@ -40,6 +45,7 @@ function App() {
               <Route path="/restaurants/:id" element={<RestaurantDetails />} />
               <Route path="/menu" element={<Menu />} />
               <Route path="/menu/:id" element={<FoodDetails />} />
+              <Route path="/cart" element={<Cart />} />
             </Route>
           </Route>
 

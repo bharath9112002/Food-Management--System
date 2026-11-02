@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import CartButton from './cart/CartButton'
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: '📊' },
   { to: '/restaurants', label: 'Restaurants', icon: '🏪' },
   { to: '/menu', label: 'Menu Items', icon: '🍱' },
+  { to: '/cart', label: 'Cart', icon: '🛒' },
   { label: 'Orders', icon: '🧾' },
   { label: 'Customers', icon: '👥' },
 ]
@@ -76,6 +78,8 @@ export default function DashboardLayout() {
             <span />
             <span />
           </button>
+
+          <CartButton />
 
           <div className="topbar-user">
             <div className="topbar-user-text">
