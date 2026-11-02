@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import QuantityStepper from '../components/cart/QuantityStepper'
 import { VegMark } from '../components/menu/FoodCard'
 import { FALLBACK_IMAGE, handleImageError } from '../components/menu/image'
@@ -16,6 +16,15 @@ export default function Cart() {
     useCart()
   const [confirmClear, setConfirmClear] = useState(false)
   const [toastEl, showToast] = useToast()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Shown when checkout bounces an empty cart back here.
+  useEffect(() => {
+    if (!location.state?.notice) return
+    showToast(location.state.notice, 'warning')
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location, navigate, showToast])
 
   function handleRemove(entry) {
     removeFromCart(entry.id)
@@ -192,7 +201,7 @@ export default function Cart() {
             type="button"
             className="btn-primary"
             disabled={itemCount === 0}
-            onClick={() => showToast('Checkout is coming in the next module')}
+            onClick={() => navigate('/checkout')}
           >
             Proceed to checkout · {formatINR(summary.total)}
           </button>

@@ -54,6 +54,12 @@ export function CartProvider({ children }) {
     setLines((current) => current.filter((l) => l.id !== id))
   }
 
+  // Drops just the ordered lines; unavailable ones stay for the user to deal with.
+  function removeItems(ids) {
+    const remove = new Set(ids)
+    setLines((current) => current.filter((l) => !remove.has(l.id)))
+  }
+
   const clearCart = () => setLines([])
 
   // Join with the live menu so price edits and availability changes apply immediately.
@@ -85,7 +91,7 @@ export function CartProvider({ children }) {
 
   return (
     <CartContext.Provider
-      value={{ ...cart, addToCart, setQuantity, removeFromCart, clearCart, getQuantity }}
+      value={{ ...cart, addToCart, setQuantity, removeFromCart, removeItems, clearCart, getQuantity }}
     >
       {children}
     </CartContext.Provider>

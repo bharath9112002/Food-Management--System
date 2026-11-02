@@ -60,3 +60,25 @@ export function passwordStrength(password) {
   const labels = ['Too weak', 'Weak', 'Fair', 'Good', 'Strong']
   return { score, label: labels[score] }
 }
+
+export function validateAddress({ fullName, phone, line1, city, pincode }) {
+  const errors = {}
+
+  if (!fullName.trim()) errors.fullName = 'Full name is required'
+  else if (fullName.trim().length < 3) errors.fullName = 'Name must be at least 3 characters'
+  else if (!/^[A-Za-z\s.]+$/.test(fullName.trim())) errors.fullName = 'Name can only contain letters'
+
+  if (!phone.trim()) errors.phone = 'Phone number is required'
+  else if (!PHONE_RE.test(phone.trim())) errors.phone = 'Enter a valid 10-digit mobile number'
+
+  if (!line1.trim()) errors.line1 = 'Address is required'
+  else if (line1.trim().length < 10) errors.line1 = 'Add house/flat number, street and area'
+
+  if (!city.trim()) errors.city = 'City is required'
+  else if (!/^[A-Za-z\s.-]+$/.test(city.trim())) errors.city = 'Enter a valid city name'
+
+  if (!pincode.trim()) errors.pincode = 'Pincode is required'
+  else if (!/^[1-9]\d{5}$/.test(pincode.trim())) errors.pincode = 'Enter a valid 6-digit pincode'
+
+  return errors
+}

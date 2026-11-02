@@ -4,12 +4,15 @@ import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import { MenuProvider } from './context/MenuContext'
+import { OrdersProvider } from './context/OrdersContext'
 import ForgotPassword from './pages/ForgotPassword'
 import Cart from './pages/Cart'
+import Checkout from './pages/Checkout'
 import Dashboard from './pages/Dashboard'
 import FoodDetails from './pages/FoodDetails'
 import Login from './pages/Login'
 import Menu from './pages/Menu'
+import OrderConfirmation from './pages/OrderConfirmation'
 import Register from './pages/Register'
 import RestaurantDetails from './pages/RestaurantDetails'
 import Restaurants from './pages/Restaurants'
@@ -18,6 +21,7 @@ import './Dashboard.css'
 import './Restaurants.css'
 import './Menu.css'
 import './Cart.css'
+import './Checkout.css'
 
 function App() {
   return (
@@ -35,7 +39,9 @@ function App() {
               element={
                 <MenuProvider>
                   <CartProvider>
-                    <DashboardLayout />
+                    <OrdersProvider>
+                      <DashboardLayout />
+                    </OrdersProvider>
                   </CartProvider>
                 </MenuProvider>
               }
@@ -46,6 +52,8 @@ function App() {
               <Route path="/menu" element={<Menu />} />
               <Route path="/menu/:id" element={<FoodDetails />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/orders/:id/confirmation" element={<OrderConfirmation />} />
             </Route>
           </Route>
 
