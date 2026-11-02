@@ -1,11 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import DashboardLayout from './components/DashboardLayout'
 import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 import ForgotPassword from './pages/ForgotPassword'
-import Home from './pages/Home'
+import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import './App.css'
+import './Dashboard.css'
 
 function App() {
   return (
@@ -19,7 +21,9 @@ function App() {
           </Route>
 
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Home />} />
+            <Route element={<DashboardLayout />}>
+              <Route path="/" element={<Dashboard />} />
+            </Route>
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
