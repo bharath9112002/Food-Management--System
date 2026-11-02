@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: '📊' },
-  { label: 'Restaurants', icon: '🏪' },
+  { to: '/restaurants', label: 'Restaurants', icon: '🏪' },
   { label: 'Food Items', icon: '🍱' },
   { label: 'Orders', icon: '🧾' },
   { label: 'Customers', icon: '👥' },
@@ -33,7 +33,7 @@ export default function DashboardLayout() {
             {NAV.map((item) => (
               <li key={item.label}>
                 {item.to ? (
-                  <NavLink to={item.to} end onClick={() => setMenuOpen(false)}>
+                  <NavLink to={item.to} end={item.to === '/'} onClick={() => setMenuOpen(false)}>
                     <span aria-hidden="true">{item.icon}</span>
                     {item.label}
                   </NavLink>

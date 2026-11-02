@@ -6,8 +6,11 @@ import ForgotPassword from './pages/ForgotPassword'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import RestaurantDetails from './pages/RestaurantDetails'
+import Restaurants from './pages/Restaurants'
 import './App.css'
 import './Dashboard.css'
+import './Restaurants.css'
 
 function App() {
   return (
@@ -23,6 +26,8 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/restaurants" element={<Restaurants />} />
+              <Route path="/restaurants/:id" element={<RestaurantDetails />} />
             </Route>
           </Route>
 
