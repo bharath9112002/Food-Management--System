@@ -14,6 +14,7 @@ import Login from './pages/Login'
 import Menu from './pages/Menu'
 import OrderConfirmation from './pages/OrderConfirmation'
 import Orders from './pages/Orders'
+import Profile from './pages/Profile'
 import OrderTracking from './pages/OrderTracking'
 import Register from './pages/Register'
 import RestaurantDetails from './pages/RestaurantDetails'
@@ -25,6 +26,7 @@ import './Menu.css'
 import './Cart.css'
 import './Checkout.css'
 import './Tracking.css'
+import './Profile.css'
 
 function App() {
   return (
@@ -57,6 +59,7 @@ function App() {
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/orders" element={<Orders />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/orders/:id" element={<OrderTracking />} />
               <Route path="/orders/:id/confirmation" element={<OrderConfirmation />} />
             </Route>

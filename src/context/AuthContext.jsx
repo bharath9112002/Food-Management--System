@@ -48,6 +48,28 @@ export function AuthProvider({ children }) {
     return sessionUser
   }
 
+  // Writes profile changes to both the user record and the active session.
+  function updateProfile(changes) {
+    const next = { ...changes }
+    if (next.email !== undefined) {
+      next.email = next.email.trim().toLowerCase()
+      const owner = findUserByEmail(next.email)
+      if (owner && owner.id !== user.id) throw new Error('This email is already used by another account')
+    }
+    if (next.name !== undefined) next.name = next.name.trim()
+    if (next.phone !== undefined) next.phone = next.phone.trim()
+
+    const users = getUsers().map((u) => (u.id === user.id ? { ...u, ...next } : u))
+    const savedUsers = saveUsers(users)
+    const sessionUser = { ...user, ...next }
+    const savedSession = saveSession(sessionUser)
+    setUser(sessionUser)
+    if (savedUsers === false || savedSession === false) {
+      throw new Error('Browser storage is full — changes may be lost on refresh')
+    }
+    return sessionUser
+  }
+
   function logout() {
     clearSession()
     setUser(null)
@@ -61,7 +83,15 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: Boolean(user), register, login, logout, requestPasswordReset }}
+      value={{
+        user,
+        isAuthenticated: Boolean(user),
+        register,
+        login,
+        logout,
+        updateProfile,
+        requestPasswordReset,
+      }}
     >
       {children}
     </AuthContext.Provider>

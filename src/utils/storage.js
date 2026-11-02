@@ -45,7 +45,8 @@ const DEMO_USER = {
 
 export function getUsers() {
   const users = read(USERS_KEY, [])
-  return users.some((u) => u.email === DEMO_USER.email) ? users : [DEMO_USER, ...users]
+  // Matched by id so the demo user can still change their email in the profile.
+  return users.some((u) => u.id === DEMO_USER.id) ? users : [DEMO_USER, ...users]
 }
 export const saveUsers = (users) => write(USERS_KEY, users)
 

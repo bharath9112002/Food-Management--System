@@ -82,3 +82,17 @@ export function validateAddress({ fullName, phone, line1, city, pincode }) {
 
   return errors
 }
+
+export function validateProfile({ name, email, phone }) {
+  const errors = {}
+  if (!name.trim()) errors.name = 'Full name is required'
+  else if (name.trim().length < 3) errors.name = 'Name must be at least 3 characters'
+  else if (!/^[A-Za-z\s.]+$/.test(name.trim())) errors.name = 'Name can only contain letters'
+
+  const emailError = validateEmail(email)
+  if (emailError) errors.email = emailError
+
+  if (!phone.trim()) errors.phone = 'Mobile number is required'
+  else if (!PHONE_RE.test(phone.trim())) errors.phone = 'Enter a valid 10-digit mobile number'
+  return errors
+}

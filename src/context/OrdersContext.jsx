@@ -27,10 +27,19 @@ export function OrdersProvider({ children }) {
     writeJSON(addressesKey(user.id), addresses)
   }, [user.id, addresses])
 
+  // The first address is the default. New ones go first; edits keep their place.
   function saveAddress(address) {
     const saved = { ...address, id: address.id ?? crypto.randomUUID() }
-    setAddresses((current) => [saved, ...current.filter((a) => a.id !== saved.id)])
+    setAddresses((current) =>
+      current.some((a) => a.id === saved.id)
+        ? current.map((a) => (a.id === saved.id ? saved : a))
+        : [saved, ...current],
+    )
     return saved
+  }
+
+  function setDefaultAddress(id) {
+    setAddresses((current) => [...current.filter((a) => a.id === id), ...current.filter((a) => a.id !== id)])
   }
 
   function deleteAddress(id) {
@@ -90,6 +99,7 @@ export function OrdersProvider({ children }) {
         addresses,
         saveAddress,
         deleteAddress,
+        setDefaultAddress,
         placeOrder,
         getOrder,
         cancelOrder,

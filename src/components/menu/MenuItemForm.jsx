@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CATEGORIES } from '../../api/menu'
 import { FormField } from '../FormField'
+import { checkImageFile, resizeImage } from '../../utils/image'
 import { FALLBACK_IMAGE, handleImageError } from './image'
 
 const EMPTY = {
@@ -13,8 +14,6 @@ const EMPTY = {
   image: '',
 }
 
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024
-const MAX_IMAGE_SIDE = 600
 
 function validate(v) {
   const errors = {}
@@ -40,28 +39,6 @@ function validate(v) {
   return errors
 }
 
-// Shrinks uploads so they fit comfortably in localStorage.
-function resizeImage(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const img = new Image()
-    img.onload = () => {
-      const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(img.width, img.height))
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      resolve(canvas.toDataURL('image/jpeg', 0.8))
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('That file could not be read as an image'))
-    }
-    img.src = url
-  })
-}
-
 export default function MenuItemForm({ initial, onSubmit, onCancel }) {
   const [values, setValues] = useState(() =>
     initial ? { ...EMPTY, ...initial, price: String(initial.price) } : EMPTY,
@@ -79,8 +56,8 @@ export default function MenuItemForm({ initial, onSubmit, onCancel }) {
     e.target.value = ''
     setUploadError('')
     if (!file) return
-    if (!file.type.startsWith('image/')) return setUploadError('Please choose an image file')
-    if (file.size > MAX_UPLOAD_BYTES) return setUploadError('Image must be smaller than 5 MB')
+    const problem = checkImageFile(file)
+    if (problem) return setUploadError(problem)
     try {
       set('image', await resizeImage(file))
     } catch (err) {
