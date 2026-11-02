@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const ACTIONS = [
   { label: 'Add Restaurant', desc: 'Onboard a new partner', icon: '🏪', tone: 'red' },
-  { label: 'Add Food Item', desc: 'Create a new menu item', icon: '🍔', tone: 'orange' },
+  { label: 'Add Food Item', desc: 'Create a new menu item', icon: '🍔', tone: 'orange', to: '/menu', state: { openAdd: true } },
   { label: 'Manage Orders', desc: 'Track and update orders', icon: '📦', tone: 'blue' },
   { label: 'View Customers', desc: 'See customer details', icon: '👥', tone: 'purple' },
 ]
 
 export default function QuickActions() {
+  const navigate = useNavigate()
   const [notice, setNotice] = useState('')
 
   useEffect(() => {
@@ -28,7 +30,9 @@ export default function QuickActions() {
             key={a.label}
             type="button"
             className={`action-card tone-${a.tone}`}
-            onClick={() => setNotice(`${a.label} is coming in the next module`)}
+            onClick={() =>
+              a.to ? navigate(a.to, { state: a.state }) : setNotice(`${a.label} is coming in the next module`)
+            }
           >
             <span className="action-icon" aria-hidden="true">{a.icon}</span>
             <span className="action-text">

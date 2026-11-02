@@ -11,13 +11,17 @@ function read(key, fallback) {
   }
 }
 
+// Returns false when storage is full or blocked; the app keeps working in memory.
 function write(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value))
+    return true
   } catch {
-    // Storage may be full or blocked; the app keeps working in memory.
+    return false
   }
 }
+
+export { read as readJSON, write as writeJSON }
 
 export async function hashPassword(password) {
   const data = new TextEncoder().encode(password)
