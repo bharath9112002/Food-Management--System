@@ -5,8 +5,6 @@ import { BillDetails, OrderItemList } from '../components/checkout/OrderItems'
 import { StateMessage } from '../components/restaurants/StateMessage'
 import { useOrders } from '../context/OrdersContext'
 
-const STEPS = ['Order placed', 'Preparing', 'On the way', 'Delivered']
-
 const formatTime = (iso) =>
   new Date(iso).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })
 
@@ -80,15 +78,6 @@ export default function OrderConfirmation() {
         <span className="eta-emoji" aria-hidden="true">🛵</span>
       </section>
 
-      <ol className="order-progress" aria-label="Order status">
-        {STEPS.map((step, i) => (
-          <li key={step} className={i === 0 ? 'done' : ''} aria-current={i === 0 ? 'step' : undefined}>
-            <span className="progress-dot" aria-hidden="true">{i === 0 ? '✓' : i + 1}</span>
-            {step}
-          </li>
-        ))}
-      </ol>
-
       <div className="details-grid">
         <section className="panel">
           <h2>Items ({itemCount})</h2>
@@ -131,7 +120,10 @@ export default function OrderConfirmation() {
       </div>
 
       <div className="confirm-actions">
-        <Link to="/menu" className="btn-primary btn-inline btn-link">
+        <Link to={`/orders/${order.id}`} className="btn-primary btn-inline btn-link">
+          📍 Track order
+        </Link>
+        <Link to="/menu" className="btn-secondary">
           Order more food
         </Link>
         <Link to="/" className="btn-secondary">

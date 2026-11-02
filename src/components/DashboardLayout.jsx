@@ -8,7 +8,7 @@ const NAV = [
   { to: '/restaurants', label: 'Restaurants', icon: '🏪' },
   { to: '/menu', label: 'Menu Items', icon: '🍱' },
   { to: '/cart', label: 'Cart', icon: '🛒' },
-  { label: 'Orders', icon: '🧾' },
+  { to: '/orders', label: 'My Orders', icon: '🧾' },
   { label: 'Customers', icon: '👥' },
 ]
 

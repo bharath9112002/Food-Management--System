@@ -1,5 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { estimateDelivery, generateOrderId } from '../utils/orders'
+import {
+  advanceSchedule,
+  buildSchedule,
+  CANCELLABLE,
+  estimateDelivery,
+  generateOrderId,
+  getStatus,
+} from '../utils/orders'
 import { readJSON, writeJSON } from '../utils/storage'
 import { useAuth } from './AuthContext'
 
@@ -36,10 +43,10 @@ export function OrdersProvider({ children }) {
     const order = {
       id: generateOrderId(orders),
       userId: user.id,
-      status: 'Placed',
       placedAt: placedAt.toISOString(),
       eta,
       estimatedDeliveryAt: new Date(placedAt.getTime() + eta.max * 60000).toISOString(),
+      schedule: buildSchedule(placedAt, eta),
       items: entries.map(({ item, qty, lineTotal }) => ({
         id: item.id,
         name: item.name,
@@ -61,9 +68,33 @@ export function OrdersProvider({ children }) {
 
   const getOrder = (id) => orders.find((o) => o.id === id)
 
+  const updateOrder = (id, change) =>
+    setOrders((current) => current.map((o) => (o.id === id ? { ...o, ...change(o) } : o)))
+
+  // Returns false if the order already left the kitchen by the time the user confirmed.
+  function cancelOrder(id, reason) {
+    const order = getOrder(id)
+    if (!order || !CANCELLABLE.includes(getStatus(order))) return false
+    updateOrder(id, () => ({ cancelledAt: new Date().toISOString(), cancelReason: reason }))
+    return true
+  }
+
+  function advanceOrder(id) {
+    updateOrder(id, (o) => ({ schedule: advanceSchedule(o) }))
+  }
+
   return (
     <OrdersContext.Provider
-      value={{ orders, addresses, saveAddress, deleteAddress, placeOrder, getOrder }}
+      value={{
+        orders,
+        addresses,
+        saveAddress,
+        deleteAddress,
+        placeOrder,
+        getOrder,
+        cancelOrder,
+        advanceOrder,
+      }}
     >
       {children}
     </OrdersContext.Provider>
