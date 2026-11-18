@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ADDRESS_TYPES, EMPTY_ADDRESS, formatAddress } from '../components/checkout/address'
 import AddressForm from '../components/checkout/AddressForm'
+import CouponBox from '../components/cart/CouponBox'
+import PaymentSection from '../components/checkout/PaymentSection'
 import { BillDetails, OrderItemList } from '../components/checkout/OrderItems'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
@@ -9,28 +11,26 @@ import { useMenu } from '../context/MenuContext'
 import { useOrders } from '../context/OrdersContext'
 import { formatINR } from '../data/dashboardData'
 import { estimateDelivery } from '../utils/orders'
+import { describeMethod, EMPTY_PAYMENT, METHODS, processPayment, validatePayment } from '../utils/payment'
 import { validateAddress } from '../utils/validation'
-
-const PAYMENT_METHODS = [
-  { value: 'Cash on Delivery', icon: '💵', note: 'Pay when your food arrives' },
-  { value: 'UPI on Delivery', icon: '📱', note: 'Scan & pay at your door' },
-  { value: 'Card on Delivery', icon: '💳', note: 'Card machine with the rider' },
-]
 
 const NEW_ADDRESS = 'new'
 
 export default function Checkout() {
   const { user } = useAuth()
   const { loading } = useMenu()
-  const { entries, itemCount, summary, removeItems } = useCart()
-  const { addresses, saveAddress, deleteAddress, placeOrder } = useOrders()
+  const { entries, itemCount, summary, removeItems, removeCoupon } = useCart()
+  const { addresses, saveAddress, deleteAddress, placeOrder, walletBalance, topUpWallet, debitWallet } = useOrders()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [selectedId, setSelectedId] = useState(() => addresses[0]?.id ?? NEW_ADDRESS)
   const [form, setForm] = useState(() => ({ ...EMPTY_ADDRESS, fullName: user.name, phone: user.phone ?? '' }))
   const [touched, setTouched] = useState({})
   const [saveForLater, setSaveForLater] = useState(true)
-  const [payment, setPayment] = useState(PAYMENT_METHODS[0].value)
+  // The failure screen can send the user back with a different method preselected.
+  const [payment, setPayment] = useState(() => ({ ...EMPTY_PAYMENT, method: location.state?.method ?? EMPTY_PAYMENT.method }))
+  const [payTouched, setPayTouched] = useState({})
   const [instructions, setInstructions] = useState('')
   const [placing, setPlacing] = useState(false)
   const [placeError, setPlaceError] = useState('')
@@ -40,6 +40,8 @@ export default function Checkout() {
   const skipped = entries.length - orderable.length
   const usingNew = selectedId === NEW_ADDRESS || !addresses.some((a) => a.id === selectedId)
   const formErrors = validateAddress(form)
+  const paymentErrors = validatePayment(payment, { amount: summary.total, walletBalance })
+  const isCod = payment.method === METHODS.COD
 
   if (loading) {
     return (
@@ -72,20 +74,56 @@ export default function Checkout() {
         document.querySelector('.address-form [aria-invalid="true"]')?.focus()
         return
       }
+    }
+
+    setPayTouched({ upiId: true, number: true, name: true, expiry: true, cvv: true })
+    if (Object.keys(paymentErrors).length) {
+      setPlaceError(paymentErrors.wallet ?? 'Please check your payment details.')
+      document.querySelector('.payment-panel [aria-invalid="true"]')?.focus()
+      return
+    }
+
+    if (usingNew) {
       const clean = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v.trim()]))
       address = saveForLater ? saveAddress(clean) : clean
+      // Select the saved copy so a retry after a failed payment doesn't save it twice.
+      if (saveForLater) setSelectedId(address.id)
     } else {
       address = addresses.find((a) => a.id === selectedId)
     }
 
+    const amount = summary.total
+    const methodLabel = describeMethod(payment)
     setPlacing(true)
-    // Stand-in for the network round trip a real order API would take.
-    await new Promise((resolve) => setTimeout(resolve, 1200))
 
-    const order = placeOrder({ entries: orderable, summary, address, payment, instructions })
+    let paymentInfo
+    if (isCod) {
+      // Stand-in for the network round trip a real order API would take.
+      await new Promise((resolve) => setTimeout(resolve, 1200))
+      paymentInfo = { method: METHODS.COD, status: 'Pay on delivery', amount }
+    } else {
+      const result = await processPayment({ ...payment, amount })
+      if (!result.ok) {
+        setPlacing(false)
+        navigate('/payment/failed', { state: { reason: result.reason, code: result.code, amount, methodLabel } })
+        return
+      }
+      if (payment.method === METHODS.WALLET) debitWallet(amount)
+      paymentInfo = { method: payment.method, status: 'Paid', txnId: result.txnId, paidAt: result.paidAt, amount }
+    }
+
+    const order = placeOrder({
+      entries: orderable,
+      summary,
+      address,
+      payment: isCod ? methodLabel : `${methodLabel} (Paid)`,
+      paymentInfo,
+      instructions,
+    })
     setPlaced(true)
     removeItems(orderable.map((e) => e.id))
-    navigate(`/orders/${order.id}/confirmation`, { replace: true })
+    removeCoupon()
+    navigate(isCod ? `/orders/${order.id}/confirmation` : `/payment/success/${order.id}`, { replace: true })
   }
 
   return (
@@ -183,25 +221,21 @@ export default function Checkout() {
 
           <section className="panel" aria-labelledby="payment-title">
             <h2 id="payment-title" className="step-title">
-              <span className="step-num">2</span> Payment method
+              <span className="step-num">2</span> Payment
             </h2>
-            <div className="payment-options" role="radiogroup" aria-label="Payment method">
-              {PAYMENT_METHODS.map((m) => (
-                <label key={m.value} className={`address-card ${payment === m.value ? 'selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="payment"
-                    checked={payment === m.value}
-                    onChange={() => setPayment(m.value)}
-                  />
-                  <span className="payment-icon" aria-hidden="true">{m.icon}</span>
-                  <span className="address-card-body">
-                    <strong>{m.value}</strong>
-                    <span>{m.note}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
+            <PaymentSection
+              payment={payment}
+              onChange={(change) => {
+                setPayment((p) => ({ ...p, ...change }))
+                setPlaceError('')
+              }}
+              errors={paymentErrors}
+              touched={payTouched}
+              onBlur={(field) => setPayTouched((t) => ({ ...t, [field]: true }))}
+              amount={summary.total}
+              walletBalance={walletBalance}
+              onTopUp={topUpWallet}
+            />
           </section>
 
           <section className="panel" aria-labelledby="notes-title">
@@ -239,6 +273,8 @@ export default function Checkout() {
             </p>
           )}
 
+          <CouponBox />
+
           <BillDetails summary={summary} itemCount={itemCount} />
 
           <div className="eta-box">
@@ -260,15 +296,30 @@ export default function Checkout() {
           <button type="button" className="btn-primary" onClick={handlePlaceOrder} disabled={placing}>
             {placing ? (
               <>
-                <span className="spinner" aria-hidden="true" /> Placing order…
+                <span className="spinner" aria-hidden="true" /> {isCod ? 'Placing order…' : 'Processing…'}
               </>
-            ) : (
+            ) : isCod ? (
               <>Place order · {formatINR(summary.total)}</>
+            ) : (
+              <>🔒 Pay {formatINR(summary.total)}</>
             )}
           </button>
           <p className="summary-note">By placing the order you agree to our terms of service.</p>
         </aside>
       </div>
+
+      {placing && !isCod && (
+        <div className="processing-overlay" role="alertdialog" aria-modal="true" aria-labelledby="processing-title">
+          <div className="processing-card">
+            <span className="processing-spinner" aria-hidden="true" />
+            <h2 id="processing-title">Processing your payment</h2>
+            <p>
+              {formatINR(summary.total)} via {describeMethod(payment)}
+            </p>
+            <small>Please don&apos;t close or refresh this page.</small>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

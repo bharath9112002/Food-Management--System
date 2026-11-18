@@ -1,23 +1,18 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import {
-  advanceSchedule,
-  buildSchedule,
-  CANCELLABLE,
-  estimateDelivery,
-  generateOrderId,
-  getStatus,
-} from '../utils/orders'
+import { advanceSchedule, buildOrder, CANCELLABLE, cancellation, getStatus } from '../utils/orders'
+import { WALLET_START_BALANCE } from '../utils/payment'
 import { readJSON, writeJSON } from '../utils/storage'
+import { addressesKey, ordersKey, walletKey } from '../utils/storageKeys'
 import { useAuth } from './AuthContext'
 
 const OrdersContext = createContext(null)
-const ordersKey = (userId) => `food_orders_${userId}`
-const addressesKey = (userId) => `food_addresses_${userId}`
 
 export function OrdersProvider({ children }) {
   const { user } = useAuth()
   const [orders, setOrders] = useState(() => readJSON(ordersKey(user.id), []))
   const [addresses, setAddresses] = useState(() => readJSON(addressesKey(user.id), []))
+  // Demo wallet: every account starts with a balance and can top up freely.
+  const [walletBalance, setWalletBalance] = useState(() => readJSON(walletKey(user.id), WALLET_START_BALANCE))
 
   useEffect(() => {
     writeJSON(ordersKey(user.id), orders)
@@ -26,6 +21,23 @@ export function OrdersProvider({ children }) {
   useEffect(() => {
     writeJSON(addressesKey(user.id), addresses)
   }, [user.id, addresses])
+
+  useEffect(() => {
+    writeJSON(walletKey(user.id), walletBalance)
+  }, [user.id, walletBalance])
+
+  // The admin can update this customer's orders/wallet from another tab.
+  useEffect(() => {
+    function onStorage(e) {
+      if (e.key === ordersKey(user.id)) setOrders(readJSON(ordersKey(user.id), []))
+      if (e.key === walletKey(user.id)) setWalletBalance(readJSON(walletKey(user.id), WALLET_START_BALANCE))
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [user.id])
+
+  const topUpWallet = (amount) => setWalletBalance((b) => b + amount)
+  const debitWallet = (amount) => setWalletBalance((b) => b - amount)
 
   // The first address is the default. New ones go first; edits keep their place.
   function saveAddress(address) {
@@ -46,31 +58,8 @@ export function OrdersProvider({ children }) {
     setAddresses((current) => current.filter((a) => a.id !== id))
   }
 
-  function placeOrder({ entries, summary, address, payment, instructions }) {
-    const placedAt = new Date()
-    const eta = estimateDelivery(entries)
-    const order = {
-      id: generateOrderId(orders),
-      userId: user.id,
-      placedAt: placedAt.toISOString(),
-      eta,
-      estimatedDeliveryAt: new Date(placedAt.getTime() + eta.max * 60000).toISOString(),
-      schedule: buildSchedule(placedAt, eta),
-      items: entries.map(({ item, qty, lineTotal }) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        isVeg: item.isVeg,
-        // Uploaded images are large data URLs; keep order history light.
-        image: item.image?.startsWith('data:') ? '' : item.image,
-        qty,
-        lineTotal,
-      })),
-      summary,
-      address,
-      payment,
-      instructions: instructions.trim(),
-    }
+  function placeOrder(details) {
+    const order = buildOrder({ ...details, existing: orders, userId: user.id })
     setOrders((current) => [order, ...current])
     return order
   }
@@ -84,7 +73,9 @@ export function OrdersProvider({ children }) {
   function cancelOrder(id, reason) {
     const order = getOrder(id)
     if (!order || !CANCELLABLE.includes(getStatus(order))) return false
-    updateOrder(id, () => ({ cancelledAt: new Date().toISOString(), cancelReason: reason }))
+    const { change, walletRefund } = cancellation(order, reason)
+    if (walletRefund) topUpWallet(walletRefund)
+    updateOrder(id, () => change)
     return true
   }
 
@@ -104,6 +95,9 @@ export function OrdersProvider({ children }) {
         getOrder,
         cancelOrder,
         advanceOrder,
+        walletBalance,
+        topUpWallet,
+        debitWallet,
       }}
     >
       {children}

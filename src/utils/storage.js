@@ -31,28 +31,52 @@ export async function hashPassword(password) {
     .join('')
 }
 
-export const DEMO_CREDENTIALS = { email: 'demo@foodhub.com', password: 'Demo@123' }
+export const ROLES = { CUSTOMER: 'customer', ADMIN: 'admin' }
+
+export const DEMO_CREDENTIALS = [
+  { role: ROLES.CUSTOMER, label: 'Customer', email: 'demo@foodhub.com', password: 'Demo@123' },
+  { role: ROLES.ADMIN, label: 'Admin', email: 'admin@foodhub.com', password: 'Admin@123' },
+]
 
 // Always available so the demo credentials work on a fresh browser.
-const DEMO_USER = {
-  id: 'demo-user',
-  name: 'Demo User',
-  email: DEMO_CREDENTIALS.email,
-  phone: '9876543210',
-  passwordHash: 'ff96673205dc722320598ebf8f88325b2ac56922d5a2164b5765868274bc0d73',
-  createdAt: '2026-01-01T00:00:00.000Z',
-}
+const DEMO_USERS = [
+  {
+    id: 'demo-user',
+    name: 'Demo User',
+    email: 'demo@foodhub.com',
+    phone: '9876543210',
+    role: ROLES.CUSTOMER,
+    passwordHash: 'ff96673205dc722320598ebf8f88325b2ac56922d5a2164b5765868274bc0d73',
+    createdAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'demo-admin',
+    name: 'Admin Manager',
+    email: 'admin@foodhub.com',
+    phone: '9123456780',
+    role: ROLES.ADMIN,
+    passwordHash: 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7',
+    createdAt: '2026-01-01T00:00:00.000Z',
+  },
+]
+
+// Accounts created before roles existed are customers.
+const withRole = (user) => ({ ...user, role: user.role ?? ROLES.CUSTOMER })
 
 export function getUsers() {
   const users = read(USERS_KEY, [])
-  // Matched by id so the demo user can still change their email in the profile.
-  return users.some((u) => u.id === DEMO_USER.id) ? users : [DEMO_USER, ...users]
+  // Matched by id so demo users can still change their email in the profile.
+  const missing = DEMO_USERS.filter((demo) => !users.some((u) => u.id === demo.id))
+  return [...missing, ...users].map(withRole)
 }
 export const saveUsers = (users) => write(USERS_KEY, users)
 
 export const findUserByEmail = (email) =>
   getUsers().find((u) => u.email === email.trim().toLowerCase())
 
-export const getSession = () => read(SESSION_KEY, null)
+export function getSession() {
+  const session = read(SESSION_KEY, null)
+  return session && withRole(session)
+}
 export const saveSession = (user) => write(SESSION_KEY, user)
 export const clearSession = () => localStorage.removeItem(SESSION_KEY)

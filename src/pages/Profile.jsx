@@ -16,7 +16,7 @@ import { validateAddress, validateProfile } from '../utils/validation'
 const ADDRESS_FIELDS = Object.keys(EMPTY_ADDRESS)
 
 export default function Profile() {
-  const { user, updateProfile } = useAuth()
+  const { user, isAdmin, updateProfile } = useAuth()
   const { orders, addresses, saveAddress, deleteAddress, setDefaultAddress } = useOrders()
   const [toastEl, showToast] = useToast()
   const fileInput = useRef(null)
@@ -151,6 +151,7 @@ export default function Profile() {
           </div>
         </div>
 
+        {!isAdmin && (
         <dl className="profile-stats">
           {stats.map((s) => (
             <div key={s.label}>
@@ -159,9 +160,10 @@ export default function Profile() {
             </div>
           ))}
         </dl>
+        )}
       </section>
 
-      <div className="profile-grid">
+      <div className={`profile-grid${isAdmin ? ' single' : ''}`}>
         <section className="panel" aria-labelledby="info-title">
           <div className="panel-head">
             <h2 id="info-title">Personal information</h2>
@@ -229,6 +231,8 @@ export default function Profile() {
           )}
         </section>
 
+        {/* Admins don't order, so they have no delivery addresses. */}
+        {!isAdmin && (
         <section className="panel" aria-labelledby="addresses-title">
           <div className="panel-head">
             <div>
@@ -287,6 +291,7 @@ export default function Profile() {
             </ul>
           )}
         </section>
+        )}
       </div>
 
       <Modal

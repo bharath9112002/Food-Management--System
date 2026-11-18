@@ -105,3 +105,71 @@ export function getRider(orderId) {
   const hash = [...orderId].reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
   return RIDERS[hash % RIDERS.length]
 }
+
+// ---------- Shared by customer checkout and admin order placement ----------
+
+// `payment` is the display label; `paymentInfo` holds method/status/transaction.
+export function buildOrder({ existing, userId, entries, summary, address, payment, paymentInfo, instructions, placedBy }) {
+  const placedAt = new Date()
+  const eta = estimateDelivery(entries)
+  return {
+    id: generateOrderId(existing),
+    userId,
+    placedAt: placedAt.toISOString(),
+    eta,
+    estimatedDeliveryAt: new Date(placedAt.getTime() + eta.max * 60000).toISOString(),
+    schedule: buildSchedule(placedAt, eta),
+    items: entries.map(({ item, qty, lineTotal }) => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      isVeg: item.isVeg,
+      // Uploaded images are large data URLs; keep order history light.
+      image: item.image?.startsWith('data:') ? '' : item.image,
+      qty,
+      lineTotal,
+    })),
+    summary,
+    address,
+    payment,
+    paymentInfo,
+    instructions: (instructions ?? '').trim(),
+    ...(placedBy && { placedBy }),
+  }
+}
+
+// Customers may cancel until the food leaves the kitchen; the restaurant (admin)
+// may cancel until it is delivered.
+export const ADMIN_CANCELLABLE = [STATUS.PLACED, STATUS.PREPARING, STATUS.OUT]
+
+// Returns the fields to merge into the order, plus any instant wallet refund.
+export function cancellation(order, reason, cancelledBy = 'customer') {
+  const paid = order.paymentInfo?.status === 'Paid'
+  // Wallet refunds are instant; card/UPI refunds go back to the source.
+  const walletRefund = paid && order.paymentInfo.method === 'wallet' ? order.summary.total : 0
+  return {
+    walletRefund,
+    change: {
+      cancelledAt: new Date().toISOString(),
+      cancelReason: reason,
+      cancelledBy,
+      ...(paid && { refund: { amount: order.summary.total, status: 'Initiated', to: order.payment } }),
+    },
+  }
+}
+
+// Admin status control: `target` happens now, earlier steps are pulled to now at the
+// latest, and later steps keep their spacing relative to the target.
+export function moveToStatus(order, target, now = Date.now()) {
+  const schedule = getSchedule(order)
+  const targetIndex = FLOW.indexOf(target)
+  const shift = new Date(schedule[target]).getTime() - now
+  return Object.fromEntries(
+    FLOW.map((step, i) => {
+      const time = new Date(schedule[step]).getTime()
+      if (i < targetIndex) return [step, new Date(Math.min(time, now)).toISOString()]
+      if (i === targetIndex) return [step, new Date(now).toISOString()]
+      return [step, new Date(Math.max(time - shift, now + (i - targetIndex) * 60000)).toISOString()]
+    }),
+  )
+}

@@ -1,0 +1,214 @@
+/* ---------- Invoice ---------- */
+.invoice-sheet {
+  position: relative;
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  overflow: hidden;
+  color: #111827;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+}
+
+.invoice-sheet p {
+  margin: 0;
+}
+
+.invoice-stamp {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  padding: 6px 24px;
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: rgba(220, 38, 38, 0.18);
+  text-transform: uppercase;
+  border: 5px solid rgba(220, 38, 38, 0.18);
+  border-radius: 12px;
+  transform: translate(-50%, -50%) rotate(-18deg);
+  pointer-events: none;
+}
+
+.invoice-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  font-size: 12px;
+  color: #6b7280;
+  border-bottom: 2px solid #e23744;
+}
+
+.invoice-brand {
+  margin-bottom: 4px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #e23744;
+}
+
+.invoice-meta h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: #111827;
+  text-align: right;
+}
+
+.invoice-meta dl {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.invoice-meta dl div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.invoice-meta dd {
+  margin: 0;
+  font-weight: 700;
+  color: #111827;
+}
+
+.invoice-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  font-size: 13px;
+}
+
+.invoice-parties h4 {
+  margin: 0 0 4px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.invoice-table {
+  width: 100%;
+  font-size: 13px;
+  border-collapse: collapse;
+}
+
+.invoice-table th {
+  padding: 8px 10px;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  color: #6b7280;
+  text-align: left;
+  text-transform: uppercase;
+  background: #f3f4f6;
+}
+
+.invoice-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.invoice-table small {
+  color: #6b7280;
+}
+
+.invoice-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-totals {
+  display: grid;
+  gap: 6px;
+  width: min(100%, 300px);
+  margin: 0 0 0 auto;
+  font-size: 13px;
+}
+
+.invoice-totals div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.invoice-totals dt {
+  color: #6b7280;
+}
+
+.invoice-totals dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-grand {
+  margin-top: 4px;
+  padding-top: 8px;
+  font-size: 16px;
+  border-top: 2px solid #111827;
+}
+
+.invoice-grand dt,
+.invoice-grand dd {
+  font-weight: 800;
+  color: #111827;
+}
+
+.invoice-payment {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  font-size: 13px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.invoice-foot {
+  font-size: 11px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.invoice-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: right;
+}
+
+@media (max-width: 600px) {
+  .invoice-sheet {
+    padding: 16px;
+  }
+  .invoice-parties {
+    grid-template-columns: 1fr;
+  }
+  .invoice-meta h3,
+  .invoice-meta dl div {
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+
+/* Print only the invoice sheet when "Download PDF" is used. */
+@media print {
+  body.printing-invoice * {
+    visibility: hidden;
+  }
+  body.printing-invoice .invoice-sheet,
+  body.printing-invoice .invoice-sheet * {
+    visibility: visible;
+  }
+  body.printing-invoice .invoice-sheet {
+    position: fixed;
+    inset: 0;
+    border: none;
+    border-radius: 0;
+  }
+  body.printing-invoice .modal::backdrop {
+    background: none;
+  }
+}

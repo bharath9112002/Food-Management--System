@@ -255,6 +255,11 @@
   margin: 0;
 }
 
+/* Admin profile has only the personal info panel */
+.profile-grid.single {
+  grid-template-columns: minmax(0, 640px);
+}
+
 @media (max-width: 1000px) {
   .profile-grid {
     grid-template-columns: 1fr;

@@ -1,16 +1,19 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { formatAddress } from '../components/checkout/address'
 import { BillDetails, OrderItemList } from '../components/checkout/OrderItems'
 import Modal from '../components/Modal'
+import InvoiceModal from '../components/orders/InvoiceModal'
 import StatusBadge from '../components/orders/StatusBadge'
 import TrackingTimeline from '../components/orders/TrackingTimeline'
 import { StateMessage } from '../components/restaurants/StateMessage'
-import { useCart } from '../context/CartContext'
-import { useMenu } from '../context/MenuContext'
+import { useAuth } from '../context/AuthContext'
 import { useOrders } from '../context/OrdersContext'
 import { useNow } from '../hooks/useNow'
+import { useReorder } from '../hooks/useReorder'
 import { useToast } from '../hooks/useToast'
+import { formatINR } from '../data/dashboardData'
+import { METHODS } from '../utils/payment'
 import { CANCELLABLE, getNextStatus, getRider, getSchedule, getStatus, STATUS } from '../utils/orders'
 
 const CANCEL_REASONS = [
@@ -25,12 +28,12 @@ const formatTime = (ms) => new Date(ms).toLocaleTimeString('en-IN', { hour: 'num
 
 export default function OrderTracking() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const now = useNow(5000)
   const { getOrder, cancelOrder, advanceOrder } = useOrders()
-  const { items: menu } = useMenu()
-  const { addToCart } = useCart()
+  const { user } = useAuth()
   const [toastEl, showToast] = useToast()
+  const reorder = useReorder(() => showToast('None of these dishes are available right now', 'warning'))
+  const [invoiceOpen, setInvoiceOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [reason, setReason] = useState(CANCEL_REASONS[0])
   const [otherReason, setOtherReason] = useState('')
@@ -40,7 +43,7 @@ export default function OrderTracking() {
   if (!order) {
     return (
       <main className="dashboard">
-        <Link to="/orders" className="back-link">← My orders</Link>
+        <Link to="/orders" className="back-link">← Order history</Link>
         <StateMessage
           icon="🔎"
           title="Order not found"
@@ -75,25 +78,9 @@ export default function OrderTracking() {
     showToast(ok ? 'Your order has been cancelled' : 'Too late — the order is already out for delivery', ok ? 'success' : 'warning')
   }
 
-  function handleReorder() {
-    const menuById = new Map(menu.map((m) => [m.id, m]))
-    const orderable = order.items.filter((i) => menuById.get(i.id)?.available)
-    orderable.forEach((i) => addToCart(menuById.get(i.id), i.qty))
-    if (orderable.length === 0) {
-      showToast('None of these items are available right now', 'warning')
-      return
-    }
-    navigate('/cart', {
-      state:
-        orderable.length < order.items.length
-          ? { notice: `${order.items.length - orderable.length} item(s) are no longer available and were skipped.` }
-          : undefined,
-    })
-  }
-
   return (
     <main className="dashboard tracking-page">
-      <Link to="/orders" className="back-link">← My orders</Link>
+      <Link to="/orders" className="back-link">← Order history</Link>
 
       <section className={`track-hero panel status-${status.replace(/\s+/g, '-').toLowerCase()}`}>
         <div className="track-hero-top">
@@ -117,7 +104,12 @@ export default function OrderTracking() {
               <>
                 <h1>Order cancelled</h1>
                 <p>
-                  Cancelled at {formatTime(new Date(order.cancelledAt).getTime())}. No payment was taken.
+                  Cancelled at {formatTime(new Date(order.cancelledAt).getTime())}.{' '}
+                  {!order.refund
+                    ? 'No payment was taken.'
+                    : order.paymentInfo.method === METHODS.WALLET
+                      ? `${formatINR(order.refund.amount)} has been refunded to your FoodHub Wallet.`
+                      : `A refund of ${formatINR(order.refund.amount)} has been initiated to ${order.refund.to.replace(' (Paid)', '')} and will arrive in 5–7 working days.`}
                 </p>
               </>
             )}
@@ -164,10 +156,13 @@ export default function OrderTracking() {
               </button>
             )}
             {!isActive && (
-              <button type="button" className="btn-primary btn-inline" onClick={handleReorder}>
+              <button type="button" className="btn-primary btn-inline" onClick={() => reorder(order)}>
                 🔁 Reorder
               </button>
             )}
+            <button type="button" className="btn-secondary" onClick={() => setInvoiceOpen(true)}>
+              🧾 Download invoice
+            </button>
           </div>
 
           {next && (
@@ -258,6 +253,7 @@ export default function OrderTracking() {
         </form>
       </Modal>
 
+      <InvoiceModal order={invoiceOpen ? order : null} customer={user} onClose={() => setInvoiceOpen(false)} />
       {toastEl}
     </main>
   )

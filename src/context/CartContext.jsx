@@ -1,27 +1,37 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { evaluateCoupon } from '../utils/coupons'
+import { getStatus, STATUS } from '../utils/orders'
+import { computeSummary, MAX_QTY, priceLines } from '../utils/pricing'
 import { readJSON, writeJSON } from '../utils/storage'
+import { cartKey, couponKey } from '../utils/storageKeys'
 import { useAuth } from './AuthContext'
 import { useMenu } from './MenuContext'
+import { useOrders } from './OrdersContext'
 
-export const MAX_QTY = 10
-export const DELIVERY_FEE = 40
-export const FREE_DELIVERY_FROM = 499
-export const GST_RATE = 0.05
+// Re-exported for existing imports; the values live in utils/pricing.
+// eslint-disable-next-line react-refresh/only-export-components
+export { DELIVERY_FEE, FREE_DELIVERY_FROM, GST_RATE, MAX_QTY } from '../utils/pricing'
 
 const CartContext = createContext(null)
-const cartKey = (userId) => `food_cart_${userId}`
 
-// Each logged-in user gets their own cart. Lines keep a snapshot of the item so a
-// dish deleted from the menu still shows up (flagged) instead of vanishing silently.
+// Each logged-in user gets their own cart (pricing rules live in utils/pricing).
 export function CartProvider({ children }) {
   const { user } = useAuth()
   const { items: menu } = useMenu()
+  const { orders } = useOrders()
   const key = cartKey(user.id)
   const [lines, setLines] = useState(() => readJSON(key, []))
+  const [couponCode, setCouponCode] = useState(() => readJSON(couponKey(user.id), null))
 
   useEffect(() => {
     writeJSON(key, lines)
   }, [key, lines])
+
+  useEffect(() => {
+    writeJSON(couponKey(user.id), couponCode)
+  }, [user.id, couponCode])
+
+  const isFirstOrder = !orders.some((o) => getStatus(o) !== STATUS.CANCELLED)
 
   // Keep carts in sync when the same account is open in another tab.
   useEffect(() => {
@@ -60,38 +70,54 @@ export function CartProvider({ children }) {
     setLines((current) => current.filter((l) => !remove.has(l.id)))
   }
 
-  const clearCart = () => setLines([])
+  const clearCart = () => {
+    setLines([])
+    setCouponCode(null)
+  }
+
+  // Validates against the current cart; an invalid code is not kept.
+  function applyCoupon(code) {
+    const result = evaluateCoupon(code, {
+      subtotal: cart.summary.subtotal,
+      baseDeliveryFee: cart.summary.baseDeliveryFee,
+      isFirstOrder,
+    })
+    if (result.valid) setCouponCode(result.coupon.code)
+    return result
+  }
+
+  const removeCoupon = () => setCouponCode(null)
 
   // Join with the live menu so price edits and availability changes apply immediately.
   const cart = useMemo(() => {
-    const menuById = new Map(menu.map((i) => [i.id, i]))
-    const entries = lines.map((line) => {
-      const item = menuById.get(line.id)
-      const details = item ?? { ...line.snapshot, id: line.id }
-      const orderable = Boolean(item?.available)
-      return { ...line, item: details, removed: !item, orderable, lineTotal: details.price * line.qty }
-    })
-
-    const billable = entries.filter((e) => e.orderable)
-    const itemCount = billable.reduce((sum, e) => sum + e.qty, 0)
-    const subtotal = billable.reduce((sum, e) => sum + e.lineTotal, 0)
-    const deliveryFee = subtotal === 0 || subtotal >= FREE_DELIVERY_FROM ? 0 : DELIVERY_FEE
-    const gst = Math.round(subtotal * GST_RATE)
-
+    const entries = priceLines(lines, menu)
+    const { coupon, itemCount, summary } = computeSummary(entries, { couponCode, isFirstOrder })
     return {
       entries,
       itemCount,
       totalQty: entries.reduce((sum, e) => sum + e.qty, 0),
       hasUnavailable: entries.some((e) => !e.orderable),
-      summary: { subtotal, deliveryFee, gst, total: subtotal + deliveryFee + gst },
+      coupon,
+      summary,
     }
-  }, [lines, menu])
+  }, [lines, menu, couponCode, isFirstOrder])
 
   const getQuantity = (id) => lines.find((l) => l.id === id)?.qty ?? 0
 
   return (
     <CartContext.Provider
-      value={{ ...cart, addToCart, setQuantity, removeFromCart, removeItems, clearCart, getQuantity }}
+      value={{
+        ...cart,
+        isFirstOrder,
+        addToCart,
+        setQuantity,
+        removeFromCart,
+        removeItems,
+        clearCart,
+        getQuantity,
+        applyCoupon,
+        removeCoupon,
+      }}
     >
       {children}
     </CartContext.Provider>

@@ -5,6 +5,7 @@ import FoodCard from '../components/menu/FoodCard'
 import { useMenuEditor } from '../components/menu/useMenuEditor'
 import Pagination from '../components/restaurants/Pagination'
 import { CardSkeletons, StateMessage } from '../components/restaurants/StateMessage'
+import { useAuth } from '../context/AuthContext'
 import { useMenu } from '../context/MenuContext'
 
 const PAGE_SIZE = 12
@@ -27,6 +28,7 @@ export default function Menu() {
   const location = useLocation()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
+  const { isAdmin } = useAuth()
   const { items, loading, error, retry, resetMenu } = useMenu()
   const editor = useMenuEditor()
 
@@ -41,10 +43,10 @@ export default function Menu() {
   useEffect(() => {
     const { openAdd: shouldOpen, toast } = location.state ?? {}
     if (!shouldOpen && !toast) return
-    if (shouldOpen) openAdd()
+    if (shouldOpen && isAdmin) openAdd()
     if (toast) showToast(toast)
     navigate(location.pathname + location.search, { replace: true, state: null })
-  }, [location, navigate, openAdd, showToast])
+  }, [location, navigate, openAdd, showToast, isAdmin])
 
   function update(changes) {
     const next = { ...filters, page: '1', ...changes }
@@ -99,19 +101,23 @@ export default function Menu() {
     <main className="dashboard menu-page">
       <div className="page-head">
         <div>
-          <h1>Menu Management</h1>
+          <h1>{isAdmin ? 'Menu Management' : 'Our Menu'}</h1>
           <p>
-            {counts.total} items · {counts.veg} veg · {counts.available} available
+            {isAdmin
+              ? `${counts.total} items · ${counts.veg} veg · ${counts.available} available`
+              : `${counts.available} dishes ready to order · ${counts.veg} veg options`}
           </p>
         </div>
-        <div className="head-actions">
-          <button type="button" className="btn-secondary" onClick={handleReset} disabled={loading}>
-            ↺ Reset
-          </button>
-          <button type="button" className="btn-primary btn-inline" onClick={editor.openAdd} disabled={loading}>
-            + Add menu item
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="head-actions">
+            <button type="button" className="btn-secondary" onClick={handleReset} disabled={loading}>
+              ↺ Reset
+            </button>
+            <button type="button" className="btn-primary btn-inline" onClick={editor.openAdd} disabled={loading}>
+              + Add menu item
+            </button>
+          </div>
+        )}
       </div>
 
       <section className="filters panel" aria-label="Search and filters">
@@ -211,9 +217,13 @@ export default function Menu() {
                   key={item.id}
                   item={item}
                   linkState={{ from: location.pathname + location.search }}
-                  onEdit={editor.openEdit}
-                  onDelete={editor.askDelete}
-                  onToggle={editor.toggleAvailability}
+                  manage={
+                    isAdmin && {
+                      onEdit: editor.openEdit,
+                      onDelete: editor.askDelete,
+                      onToggle: editor.toggleAvailability,
+                    }
+                  }
                 />
               ))}
             </div>
@@ -221,16 +231,24 @@ export default function Menu() {
             <StateMessage
               icon="🍽️"
               title={items.length ? 'No food items found' : 'Your menu is empty'}
-              message={items.length ? 'Try a different search or remove some filters.' : 'Add your first dish to get started.'}
+              message={
+                items.length
+                  ? 'Try a different search or remove some filters.'
+                  : isAdmin
+                    ? 'Add your first dish to get started.'
+                    : 'Please check back soon.'
+              }
               action={
                 items.length ? (
                   <button type="button" className="btn-primary btn-inline" onClick={() => setParams({})}>
                     Clear filters
                   </button>
                 ) : (
-                  <button type="button" className="btn-primary btn-inline" onClick={editor.openAdd}>
-                    + Add menu item
-                  </button>
+                  isAdmin && (
+                    <button type="button" className="btn-primary btn-inline" onClick={editor.openAdd}>
+                      + Add menu item
+                    </button>
+                  )
                 )
               }
             />

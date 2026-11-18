@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import CouponBox from '../components/cart/CouponBox'
 import QuantityStepper from '../components/cart/QuantityStepper'
+import { BillDetails } from '../components/checkout/OrderItems'
 import { VegMark } from '../components/menu/FoodCard'
 import { FALLBACK_IMAGE, handleImageError } from '../components/menu/image'
 import { ConfirmDialog } from '../components/Modal'
 import { StateMessage } from '../components/restaurants/StateMessage'
-import { FREE_DELIVERY_FROM, GST_RATE, useCart } from '../context/CartContext'
+import { FREE_DELIVERY_FROM, useCart } from '../context/CartContext'
 import { useMenu } from '../context/MenuContext'
 import { formatINR } from '../data/dashboardData'
 import { useToast } from '../hooks/useToast'
@@ -176,26 +178,9 @@ export default function Cart() {
             </div>
           )}
 
-          <dl className="summary-rows">
-            <div>
-              <dt>Subtotal ({itemCount} {itemCount === 1 ? 'item' : 'items'})</dt>
-              <dd>{formatINR(summary.subtotal)}</dd>
-            </div>
-            <div>
-              <dt>Delivery fee</dt>
-              <dd className={summary.deliveryFee === 0 && summary.subtotal > 0 ? 'free' : ''}>
-                {summary.deliveryFee === 0 && summary.subtotal > 0 ? 'FREE' : formatINR(summary.deliveryFee)}
-              </dd>
-            </div>
-            <div>
-              <dt>GST ({GST_RATE * 100}%)</dt>
-              <dd>{formatINR(summary.gst)}</dd>
-            </div>
-            <div className="summary-total">
-              <dt>Total</dt>
-              <dd>{formatINR(summary.total)}</dd>
-            </div>
-          </dl>
+          <CouponBox />
+
+          <BillDetails summary={summary} itemCount={itemCount} />
 
           <button
             type="button"

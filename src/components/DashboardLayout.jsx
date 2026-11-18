@@ -4,18 +4,30 @@ import { useAuth } from '../context/AuthContext'
 import Avatar from './Avatar'
 import CartButton from './cart/CartButton'
 
-const NAV = [
-  { to: '/', label: 'Dashboard', icon: '📊' },
-  { to: '/restaurants', label: 'Restaurants', icon: '🏪' },
-  { to: '/menu', label: 'Menu Items', icon: '🍱' },
-  { to: '/cart', label: 'Cart', icon: '🛒' },
-  { to: '/orders', label: 'My Orders', icon: '🧾' },
-  { to: '/profile', label: 'My Profile', icon: '👤' },
-  { label: 'Customers', icon: '👥' },
-]
+const NAV = {
+  admin: [
+    { to: '/', label: 'Dashboard', icon: '📊' },
+    { to: '/restaurants', label: 'Restaurants', icon: '🏪' },
+    { to: '/menu', label: 'Menu Management', icon: '🍱' },
+    { to: '/admin/carts', label: 'Customer Carts', icon: '🛒' },
+    { to: '/admin/place-order', label: 'Place Order', icon: '📝' },
+    { to: '/admin/tracking', label: 'Order Tracking', icon: '📍' },
+    { to: '/admin/orders', label: 'Order History', icon: '🧾' },
+    { label: 'Customers', icon: '👥' },
+    { to: '/profile', label: 'My Profile', icon: '👤' },
+  ],
+  customer: [
+    { to: '/', label: 'Home', icon: '🏠' },
+    { to: '/restaurants', label: 'Restaurants', icon: '🏪' },
+    { to: '/menu', label: 'Menu', icon: '🍱' },
+    { to: '/cart', label: 'Cart', icon: '🛒' },
+    { to: '/orders', label: 'Order History', icon: '🧾' },
+    { to: '/profile', label: 'My Profile', icon: '👤' },
+  ],
+}
 
 export default function DashboardLayout() {
-  const { user, logout } = useAuth()
+  const { user, isAdmin, logout } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -30,11 +42,12 @@ export default function DashboardLayout() {
         <div className="sidebar-brand">
           <span className="sidebar-logo" aria-hidden="true">🍔</span>
           FoodHub
+          <span className={`role-badge ${user.role}`}>{isAdmin ? 'Admin' : 'Customer'}</span>
         </div>
 
         <nav aria-label="Main">
           <ul className="sidebar-nav">
-            {NAV.map((item) => (
+            {NAV[isAdmin ? 'admin' : 'customer'].map((item) => (
               <li key={item.label}>
                 {item.to ? (
                   <NavLink to={item.to} end={item.to === '/'} onClick={() => setMenuOpen(false)}>
@@ -81,7 +94,7 @@ export default function DashboardLayout() {
             <span />
           </button>
 
-          <CartButton />
+          {!isAdmin && <CartButton />}
 
           <Link to="/profile" className="topbar-user" aria-label="My profile">
             <div className="topbar-user-text">

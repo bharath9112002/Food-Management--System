@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom'
 const ACTIONS = [
   { label: 'Add Restaurant', desc: 'Onboard a new partner', icon: '🏪', tone: 'red' },
   { label: 'Add Food Item', desc: 'Create a new menu item', icon: '🍔', tone: 'orange', to: '/menu', state: { openAdd: true } },
-  { label: 'Manage Orders', desc: 'Track and update orders', icon: '📦', tone: 'blue' },
-  { label: 'View Customers', desc: 'See customer details', icon: '👥', tone: 'purple' },
+  { label: 'Manage Orders', desc: 'Track and update orders', icon: '📦', tone: 'blue', to: '/admin/tracking' },
+  { label: 'Place Order', desc: 'Take a phone order', icon: '📝', tone: 'purple', to: '/admin/place-order' },
 ]
 
 export default function QuickActions() {

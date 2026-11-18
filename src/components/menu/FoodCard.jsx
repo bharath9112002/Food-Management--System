@@ -22,7 +22,8 @@ export function AvailabilityBadge({ available }) {
   )
 }
 
-export default function FoodCard({ item, onEdit, onDelete, onToggle, linkState }) {
+// Admins pass `manage` handlers and get edit controls; customers get add-to-cart.
+export default function FoodCard({ item, manage, linkState }) {
   return (
     <article className={`food-card${item.available ? '' : ' is-unavailable'}`}>
       <Link to={`/menu/${item.id}`} state={linkState} className="food-media" tabIndex={-1} aria-hidden="true">
@@ -43,28 +44,34 @@ export default function FoodCard({ item, onEdit, onDelete, onToggle, linkState }
 
         <div className="food-footer">
           <span className="food-price">{formatINR(item.price)}</span>
-          <label className="toggle toggle-sm" title="Toggle availability">
-            <input
-              type="checkbox"
-              checked={item.available}
-              onChange={() => onToggle(item)}
-              aria-label={`${item.name} available`}
-            />
-            <span className="toggle-track" aria-hidden="true" />
+          {manage ? (
+            <label className="toggle toggle-sm" title="Toggle availability">
+              <input
+                type="checkbox"
+                checked={item.available}
+                onChange={() => manage.onToggle(item)}
+                aria-label={`${item.name} available`}
+              />
+              <span className="toggle-track" aria-hidden="true" />
+              <AvailabilityBadge available={item.available} />
+            </label>
+          ) : (
             <AvailabilityBadge available={item.available} />
-          </label>
+          )}
         </div>
 
-        <AddToCartButton item={item} size="sm" />
-
-        <div className="food-actions">
-          <button type="button" className="btn-secondary" onClick={() => onEdit(item)}>
-            ✏️ Edit
-          </button>
-          <button type="button" className="btn-secondary danger" onClick={() => onDelete(item)}>
-            🗑️ Delete
-          </button>
-        </div>
+        {manage ? (
+          <div className="food-actions">
+            <button type="button" className="btn-secondary" onClick={() => manage.onEdit(item)}>
+              ✏️ Edit
+            </button>
+            <button type="button" className="btn-secondary danger" onClick={() => manage.onDelete(item)}>
+              🗑️ Delete
+            </button>
+          </div>
+        ) : (
+          <AddToCartButton item={item} size="sm" />
+        )}
       </div>
     </article>
   )

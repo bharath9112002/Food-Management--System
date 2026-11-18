@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import InvoiceModal from '../components/orders/InvoiceModal'
 import StatusBadge from '../components/orders/StatusBadge'
 import { FALLBACK_IMAGE, handleImageError } from '../components/menu/image'
 import { StateMessage } from '../components/restaurants/StateMessage'
+import { useAuth } from '../context/AuthContext'
 import { useOrders } from '../context/OrdersContext'
 import { formatINR } from '../data/dashboardData'
 import { useNow } from '../hooks/useNow'
+import { useReorder } from '../hooks/useReorder'
+import { useToast } from '../hooks/useToast'
 import { getSchedule, getStatus, STATUS } from '../utils/orders'
 
 const TABS = [
@@ -15,6 +19,12 @@ const TABS = [
   { key: 'cancelled', label: 'Cancelled', match: (s) => s === STATUS.CANCELLED },
 ]
 
+const SORTS = {
+  newest: { label: 'Newest first', compare: (a, b) => new Date(b.order.placedAt) - new Date(a.order.placedAt) },
+  oldest: { label: 'Oldest first', compare: (a, b) => new Date(a.order.placedAt) - new Date(b.order.placedAt) },
+  amount: { label: 'Amount: high to low', compare: (a, b) => b.order.summary.total - a.order.summary.total },
+}
+
 const formatTime = (iso) => new Date(iso).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })
 
 export default function Orders() {
@@ -22,6 +32,11 @@ export default function Orders() {
   const now = useNow(10000)
   const [tab, setTab] = useState('all')
   const [query, setQuery] = useState('')
+  const [sort, setSort] = useState('newest')
+  const [invoiceOrder, setInvoiceOrder] = useState(null)
+  const { user } = useAuth()
+  const [toastEl, showToast] = useToast()
+  const reorder = useReorder(() => showToast('None of these dishes are available right now', 'warning'))
 
   const withStatus = orders.map((o) => ({ order: o, status: getStatus(o, now) }))
   const counts = Object.fromEntries(TABS.map((t) => [t.key, withStatus.filter((o) => t.match(o.status)).length]))
@@ -31,13 +46,13 @@ export default function Orders() {
     ({ order, status }) =>
       TABS.find((t) => t.key === tab).match(status) &&
       (!q || order.id.toLowerCase().includes(q) || order.items.some((i) => i.name.toLowerCase().includes(q))),
-  )
+  ).sort(SORTS[sort].compare)
 
   if (orders.length === 0) {
     return (
       <main className="dashboard">
         <div className="page-head">
-          <h1>My Orders</h1>
+          <h1>Order History</h1>
         </div>
         <StateMessage
           icon="🧾"
@@ -57,7 +72,7 @@ export default function Orders() {
     <main className="dashboard orders-page">
       <div className="page-head">
         <div>
-          <h1>My Orders</h1>
+          <h1>Order History</h1>
           <p>
             {orders.length} {orders.length === 1 ? 'order' : 'orders'} · {counts.active} active
           </p>
@@ -75,6 +90,7 @@ export default function Orders() {
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
+        <div className="history-filters">
         <div className="category-chips" role="group" aria-label="Order status">
           {TABS.map((t) => (
             <button
@@ -88,6 +104,15 @@ export default function Orders() {
             </button>
           ))}
         </div>
+        <label className="select-field inline-select">
+          <span>Sort</span>
+          <select value={sort} onChange={(e) => setSort(e.target.value)}>
+            {Object.entries(SORTS).map(([key, s]) => (
+              <option key={key} value={key}>{s.label}</option>
+            ))}
+          </select>
+        </label>
+        </div>
       </section>
 
       {visible.length === 0 ? (
@@ -99,8 +124,8 @@ export default function Orders() {
             const deliverAt = getSchedule(order)[STATUS.DELIVERED]
             const active = status !== STATUS.DELIVERED && status !== STATUS.CANCELLED
             return (
-              <li key={order.id}>
-                <Link to={`/orders/${order.id}`} className="order-card">
+              <li key={order.id} className="order-card">
+                <Link to={`/orders/${order.id}`} className="order-card-link">
                   <div className="order-thumbs" aria-hidden="true">
                     {order.items.slice(0, 3).map((i) => (
                       <img key={i.id} src={i.image || FALLBACK_IMAGE} alt="" onError={handleImageError} />
@@ -131,14 +156,30 @@ export default function Orders() {
                     ) : (
                       <span className="order-eta muted">Cancelled</span>
                     )}
-                    <span className="order-track">{active ? 'Track order →' : 'View details →'}</span>
                   </div>
                 </Link>
+
+                <div className="order-card-actions">
+                  <button type="button" className="btn-secondary" onClick={() => setInvoiceOrder(order)}>
+                    🧾 Invoice
+                  </button>
+                  {!active && (
+                    <button type="button" className="btn-secondary" onClick={() => reorder(order)}>
+                      🔁 Reorder
+                    </button>
+                  )}
+                  <Link to={`/orders/${order.id}`} className="btn-primary btn-inline btn-link">
+                    {active ? '📍 Track order' : 'View details'}
+                  </Link>
+                </div>
               </li>
             )
           })}
         </ul>
       )}
+
+      <InvoiceModal order={invoiceOrder} customer={user} onClose={() => setInvoiceOrder(null)} />
+      {toastEl}
     </main>
   )
 }

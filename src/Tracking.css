@@ -311,13 +311,9 @@
   list-style: none;
 }
 
+/* Card = clickable summary + a row of actions (buttons can't nest inside the link) */
 .order-card {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 16px;
-  color: inherit;
-  font-weight: 400;
+  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -325,9 +321,59 @@
 }
 
 .order-card:hover {
-  text-decoration: none;
   border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
   box-shadow: var(--shadow);
+}
+
+.order-card-link {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px;
+  color: inherit;
+  font-weight: 400;
+}
+
+.order-card-link:hover {
+  text-decoration: none;
+}
+
+.order-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--bg) 60%, var(--surface));
+  border-top: 1px dashed var(--border);
+}
+
+.order-card-actions > * {
+  padding: 7px 14px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+.order-card-actions .btn-link:hover {
+  color: #fff;
+}
+
+.history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inline-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline-select select {
+  min-width: 170px;
 }
 
 .order-thumbs {
@@ -401,9 +447,12 @@
 }
 
 @media (max-width: 700px) {
-  .order-card {
+  .order-card-link {
     flex-wrap: wrap;
     gap: 12px;
+  }
+  .order-card-actions > * {
+    flex: 1;
   }
   .order-thumbs img {
     width: 46px;

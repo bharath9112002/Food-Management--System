@@ -4,6 +4,7 @@ import { AvailabilityBadge, VegMark } from '../components/menu/FoodCard'
 import { FALLBACK_IMAGE, handleImageError } from '../components/menu/image'
 import { useMenuEditor } from '../components/menu/useMenuEditor'
 import { StateMessage } from '../components/restaurants/StateMessage'
+import { useAuth } from '../context/AuthContext'
 import { useMenu } from '../context/MenuContext'
 import { formatINR } from '../data/dashboardData'
 
@@ -11,6 +12,7 @@ export default function FoodDetails() {
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const { isAdmin } = useAuth()
   const { items, loading, error, retry } = useMenu()
   const backTo = location.state?.from ?? '/menu'
   const editor = useMenuEditor({
@@ -78,7 +80,7 @@ export default function FoodDetails() {
           <p className="food-detail-desc">{item.description}</p>
           <div className="food-detail-buy">
             <p className="food-detail-price">{formatINR(item.price)}</p>
-            <AddToCartButton item={item} />
+            {!isAdmin && <AddToCartButton item={item} />}
           </div>
 
           {(item.cuisine || item.prepTime || item.calories) && (
@@ -107,6 +109,7 @@ export default function FoodDetails() {
             </p>
           )}
 
+          {isAdmin && (
           <div className="food-detail-actions">
             <button type="button" className="btn-primary btn-inline" onClick={() => editor.openEdit(item)}>
               ✏️ Edit item
@@ -118,6 +121,7 @@ export default function FoodDetails() {
               🗑️ Delete
             </button>
           </div>
+          )}
         </div>
       </section>
 

@@ -5,6 +5,7 @@ import {
   getSession,
   getUsers,
   hashPassword,
+  ROLES,
   saveSession,
   saveUsers,
 } from '../utils/storage'
@@ -27,6 +28,8 @@ export function AuthProvider({ children }) {
       name: name.trim(),
       email: normalizedEmail,
       phone: phone.trim(),
+      // Self sign-up is always a customer; admins are provisioned separately.
+      role: ROLES.CUSTOMER,
       passwordHash: await hashPassword(password),
       createdAt: new Date().toISOString(),
     }
@@ -50,7 +53,8 @@ export function AuthProvider({ children }) {
 
   // Writes profile changes to both the user record and the active session.
   function updateProfile(changes) {
-    const next = { ...changes }
+    // Role is never editable from the profile.
+    const { role: _role, ...next } = changes
     if (next.email !== undefined) {
       next.email = next.email.trim().toLowerCase()
       const owner = findUserByEmail(next.email)
@@ -86,6 +90,7 @@ export function AuthProvider({ children }) {
       value={{
         user,
         isAuthenticated: Boolean(user),
+        isAdmin: user?.role === ROLES.ADMIN,
         register,
         login,
         logout,

@@ -12,6 +12,12 @@ export function ProtectedRoute() {
   return <Outlet />
 }
 
+// Limits a group of routes to certain roles; others go back to their own home page.
+export function RoleRoute({ allow }) {
+  const { user } = useAuth()
+  return allow.includes(user.role) ? <Outlet /> : <Navigate to="/" replace />
+}
+
 // Keeps logged-in users away from login/register pages.
 export function PublicOnlyRoute() {
   const { isAuthenticated } = useAuth()
