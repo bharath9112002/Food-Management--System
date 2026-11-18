@@ -13,7 +13,6 @@ const NAV = {
     { to: '/admin/place-order', label: 'Place Order', icon: '📝' },
     { to: '/admin/tracking', label: 'Order Tracking', icon: '📍' },
     { to: '/admin/orders', label: 'Order History', icon: '🧾' },
-    { label: 'Customers', icon: '👥' },
     { to: '/profile', label: 'My Profile', icon: '👤' },
   ],
   customer: [
